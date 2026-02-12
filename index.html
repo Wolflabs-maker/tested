@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOLF LABS | FIRST STEPS PROTOCOL</title>
+    
+    <!-- REACT & BABEL -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- TAILWIND -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ICONS (Lucide React para evitar conflitos de DOM) -->
+    <script src="https://unpkg.com/lucide-react/dist/umd/lucide-react.min.js"></script>
+    
+    <!-- FONTS -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            background-color: #050505; 
+            color: #e0e0e0; 
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* CRT Effect */
+        .crt::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        
+        .terminal-shadow {
+            box-shadow: 0 0 50px rgba(46, 204, 113, 0.15);
+        }
+
+        .animate-fade { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .glow-text { text-shadow: 0 0 10px rgba(46, 204, 113, 0.5); }
+    </style>
+</head>
+<body>
+    <div id="root" class="h-screen w-screen flex items-center justify-center crt"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Ícone Helper - Refatorado para usar lucide-react e resolver o erro de DOM
+        const Icon = ({ name, size = 24, className }) => {
+            const LucideReact = window.lucideReact;
+            if (!LucideReact) return null;
+
+            // Converter kebab-case para PascalCase (ex: flask-conical -> FlaskConical)
+            const pascalName = name
+                .split('-')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join('');
+
+            let IconComponent = LucideReact[pascalName];
+            
+            // Tratamento especial caso a versão do lucide mude o nome de check-circle-2
+            if (!IconComponent && pascalName === 'CheckCircle2') {
+                IconComponent = LucideReact.CheckCircle;
+            }
+
+            if (!IconComponent) {
+                console.warn(`Icon "${name}" not found in lucide-react`);
+                return null;
+            }
+
+            return <IconComponent size={size} className={className} />;
+        };
+
+        // --- BANCO DE DADOS: 30 EXERCÍCIOS (BASEADO NO PDF) ---
+        const database = [
+            // GREETINGS (1-5)
+            { id: 1, cat: "GREETINGS", q: "Você chega em uma reunião às 9:00 AM. O que você diz?", type: "choice", options: ["Goodbye", "Hello"], ans: "Hello", tip: "Hello é para chegadas. Start the conversation." },
+            { id: 2, cat: "GREETINGS", q: "Você está indo embora. O que você diz?", type: "choice", options: ["Hi", "Goodbye"], ans: "Goodbye", tip: "Goodbye é para despedidas. End the conversation." },
+            { id: 3, cat: "GREETINGS", q: "'Hi' é formal ou informal?", type: "choice", options: ["Formal", "Informal"], ans: "Informal", tip: "Use Hi com amigos ou situações casuais." },
+            { id: 4, cat: "GREETINGS", q: "Complete: 'Nice to _____ you.'", type: "choice", options: ["meet", "see"], ans: "meet", tip: "Nice to MEET you (Prazer em conhecer)." },
+            { id: 5, cat: "GREETINGS", q: "A pessoa diz 'Nice to meet you'. Você responde:", type: "choice", options: ["Nice to meet you too", "I am fine"], ans: "Nice to meet you too", tip: "Sempre retorne com 'Too' (Também)." },
+
+            // VERB TO BE - IDENTITY (6-10)
+            { id: 6, cat: "IDENTITY", q: "Complete: 'I _____ Alex.'", type: "choice", options: ["is", "am", "are"], ans: "am", tip: "I AM. Sempre." },
+            { id: 7, cat: "IDENTITY", q: "Complete: 'He _____ my friend.'", type: "choice", options: ["am", "is"], ans: "is", tip: "He IS (Ele é)." },
+            { id: 8, cat: "IDENTITY", q: "Complete: 'She _____ from Brazil.'", type: "choice", options: ["is", "are"], ans: "is", tip: "She IS (Ela é)." },
+            { id: 9, cat: "IDENTITY", q: "Complete: 'You _____ welcome.'", type: "choice", options: ["is", "are"], ans: "are", tip: "You ARE (Você é)." },
+            { id: 10, cat: "SHORTCUTS", q: "Qual é a contração de 'I AM'?", type: "choice", options: ["I'm", "I'am"], ans: "I'm", tip: "Use I'm para falar rápido." },
+
+            // HIS vs HER (11-15)
+            { id: 11, cat: "GENDER LOGIC", q: "Sarah é mulher. O nome ___ é Sarah.", type: "choice", options: ["His", "Her"], ans: "Her", tip: "Her = Dela (Mulher)." },
+            { id: 12, cat: "GENDER LOGIC", q: "Tim é homem. O nome ___ é Tim.", type: "choice", options: ["His", "Her"], ans: "His", tip: "His = Dele (Homem)." },
+            { id: 13, cat: "GENDER LOGIC", q: "Complete: '_____ name is Georgie.' (Mulher)", type: "choice", options: ["Her", "His"], ans: "Her", tip: "Her name (Nome dela)." },
+            { id: 14, cat: "GENDER LOGIC", q: "Complete: '_____ name is Buli.' (Homem)", type: "choice", options: ["Her", "His"], ans: "His", tip: "His name (Nome dele)." },
+            { id: 15, cat: "GENDER LOGIC", q: "Traduza: 'Meu nome'", type: "choice", options: ["My name", "I name"], ans: "My name", tip: "My = Meu." },
+
+            // AGE LOGIC - CRUCIAL (16-20)
+            { id: 16, cat: "AGE LOGIC", q: "Qual frase está ERRADA?", type: "error", options: ["I have 30 years", "I am 30 years old"], ans: "I have 30 years", tip: "NUNCA use 'Have' para idade em inglês." },
+            { id: 17, cat: "AGE LOGIC", q: "Como digo 'Eu tenho 20 anos' corretamente?", type: "choice", options: ["I am 20", "I have 20"], ans: "I am 20", tip: "Em inglês, você É a idade (TO BE)." },
+            { id: 18, cat: "AGE LOGIC", q: "Complete: 'She _____ 19 years old.'", type: "choice", options: ["has", "is"], ans: "is", tip: "She IS a idade." },
+            { id: 19, cat: "AGE LOGIC", q: "Complete: 'He _____ 40.'", type: "choice", options: ["is", "has"], ans: "is", tip: "He IS a idade." },
+            { id: 20, cat: "AGE LOGIC", q: "Traduza mentalmente: 'I am 50.'", type: "choice", options: ["Eu tenho 50", "Eu sou 50"], ans: "Eu tenho 50", tip: "Sentido: Tenho. Gramática: Sou." },
+
+            // NEW VOCABULARY LAB (21-25)
+            { id: 21, cat: "NEW VOCAB", q: "Nova Palavra: TEACHER = Professor. Como digo 'Ele é um professor'?", type: "choice", options: ["He is a teacher", "He is a student"], ans: "He is a teacher", tip: "Teacher = Professor." },
+            { id: 22, cat: "NEW VOCAB", q: "Nova Palavra: STUDENT = Aluno. Como digo 'Eu sou aluno'?", type: "choice", options: ["I am a student", "I am a teacher"], ans: "I am a student", tip: "Student = Aluno." },
+            { id: 23, cat: "NEW VOCAB", q: "Nova Palavra: BOOK = Livro. Complete: 'This is my _____.'", type: "choice", options: ["book", "teacher"], ans: "book", tip: "Objeto de leitura." },
+            { id: 24, cat: "NEW VOCAB", q: "Nova Palavra: FRIEND = Amigo. Complete: 'She is my _____.'", type: "choice", options: ["friend", "book"], ans: "friend", tip: "Pessoa próxima." },
+            { id: 25, cat: "NEW VOCAB", q: "Nova Palavra: GOOD = Bom. Responda: 'How are you?'", type: "choice", options: ["I am good", "I am bad"], ans: "I am good", tip: "Good = Bem/Bom." },
+
+            // FINAL CHALLENGE (26-30)
+            { id: 26, cat: "CHALLENGE", q: "Selecione a frase correta:", type: "choice", options: ["My name is Tim and I am 25.", "I have Tim and I have 25."], ans: "My name is Tim and I am 25.", tip: "Identidade + Idade (To Be)." },
+            { id: 27, cat: "CHALLENGE", q: "Qual a contração de 'What is'?", type: "choice", options: ["What's", "Who's"], ans: "What's", tip: "What is -> What's." },
+            { id: 28, cat: "CHALLENGE", q: "Qual está correto para 'Ela é estudante'?", type: "choice", options: ["She is student", "She is a student"], ans: "She is a student", tip: "Em inglês, profissões precisam de 'A' (um/uma)." },
+            { id: 29, cat: "CHALLENGE", q: "Responda: 'What's your name?'", type: "choice", options: ["I am...", "I have..."], ans: "I am...", tip: "I am [Nome]." },
+            { id: 30, cat: "FINAL BOSS", q: "Você está pronto para a próxima missão?", type: "choice", options: ["Yes, I am ready!", "No"], ans: "Yes, I am ready!", tip: "Bem-vindo ao Wolf Labs." }
+        ];
+
+        function App() {
+            const [gameState, setGameState] = useState('start'); // start, quiz, end
+            const [index, setIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [selected, setSelected] = useState(null);
+            const [feedback, setFeedback] = useState(null);
+
+            const question = database[index];
+            const progress = ((index) / database.length) * 100;
+
+            const handleAnswer = (option) => {
+                if (feedback) return;
+                setSelected(option);
+                
+                if (option === question.ans) {
+                    setFeedback('correct');
+                    setScore(s => s + 1);
+                } else {
+                    setFeedback('wrong');
+                }
+            };
+
+            const nextQuestion = () => {
+                setFeedback(null);
+                setSelected(null);
+                if (index < database.length - 1) {
+                    setIndex(i => i + 1);
+                } else {
+                    setGameState('end');
+                }
+            };
+
+            // --- TELA INICIAL ---
+            if (gameState === 'start') {
+                return (
+                    <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto p-8 text-center animate-fade">
+                        <div className="mb-6 p-6 rounded-full border-2 border-[#2ecc71] bg-[#2ecc71]/10 shadow-[0_0_30px_#2ecc7155]">
+                            <Icon name="flask-conical" size={64} className="text-[#2ecc71]" />
+                        </div>
+                        <h1 className="text-6xl font-black text-white font-mono tracking-tighter mb-4">WOLF <span className="text-[#2ecc71]">LABS</span></h1>
+                        <p className="text-gray-400 text-lg mb-12 font-mono">PROTOCOL: FIRST STEPS (A1)</p>
+                        <button 
+                            onClick={() => setGameState('quiz')}
+                            className="bg-[#2ecc71] text-black font-bold text-xl px-12 py-4 rounded hover:scale-105 transition-transform flex items-center gap-2"
+                        >
+                            INICIAR PROTOCOLO <Icon name="arrow-right" size={20} />
+                        </button>
+                    </div>
+                );
+            }
+
+            // --- TELA FINAL ---
+            if (gameState === 'end') {
+                return (
+                    <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto p-8 text-center animate-fade">
+                        <Icon name="check-circle-2" size={80} className="text-[#2ecc71] mb-6" />
+                        <h2 className="text-4xl font-bold mb-2">SISTEMA FINALIZADO</h2>
+                        <div className="text-8xl font-black text-white mb-4">{Math.round((score/database.length)*100)}%</div>
+                        <p className="text-gray-400 mb-8">Você acertou {score} de {database.length} questões.</p>
+                        <button onClick={() => window.location.reload()} className="border border-[#333] text-white px-8 py-3 rounded hover:border-[#2ecc71] hover:text-[#2ecc71] transition-colors">
+                            REINICIAR
+                        </button>
+                    </div>
+                );
+            }
+
+            // --- TELA DO QUIZ ---
+            return (
+                <div className="w-full max-w-5xl h-[85vh] bg-[#0a0a0a] border border-[#333] rounded-xl relative flex flex-col terminal-shadow animate-fade overflow-hidden z-10">
+                    
+                    {/* Header */}
+                    <div className="h-16 border-b border-[#222] flex items-center justify-between px-8 bg-[#0f0f0f]">
+                        <div className="flex items-center gap-3">
+                            <span className="text-[#2ecc71] font-mono text-xs border border-[#2ecc71] px-2 py-0.5 rounded">MOD: {question.cat}</span>
+                        </div>
+                        <div className="font-mono text-gray-500 text-sm">
+                            {index + 1} / {database.length}
+                        </div>
+                    </div>
+
+                    {/* Área Central (Pergunta) */}
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-16 text-center relative z-10">
+                        <h2 className="text-3xl md:text-5xl font-bold mb-12 leading-tight">
+                            {question.q}
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
+                            {question.options.map((opt, i) => {
+                                let style = "border-[#333] hover:border-gray-500 bg-[#111]";
+                                if (selected === opt) {
+                                    if (opt === question.ans) style = "border-[#2ecc71] bg-[#2ecc71]/10 text-[#2ecc71]";
+                                    else style = "border-[#e74c3c] bg-[#e74c3c]/10 text-[#e74c3c]";
+                                }
+                                
+                                return (
+                                    <button 
+                                        key={i}
+                                        onClick={() => handleAnswer(opt)}
+                                        disabled={feedback !== null}
+                                        className={`p-6 rounded-lg border-2 text-xl font-bold transition-all text-left flex justify-between items-center ${style} ${feedback && selected !== opt ? 'opacity-40' : ''}`}
+                                    >
+                                        {opt}
+                                        {selected === opt && (
+                                            <Icon name={opt === question.ans ? "check" : "x"} />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Feedback Hub (Bottom) */}
+                    <div className={`absolute bottom-0 left-0 w-full bg-[#111] border-t border-[#333] p-6 transition-transform duration-300 transform ${feedback ? 'translate-y-0' : 'translate-y-full'} z-20`}>
+                        <div className="max-w-4xl mx-auto flex items-center justify-between">
+                            <div>
+                                <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${feedback === 'correct' ? 'text-[#2ecc71]' : 'text-[#e74c3c]'}`}>
+                                    {feedback === 'correct' ? 'CORRECT' : 'INCORRECT'}
+                                </div>
+                                <div className="text-white text-lg">{question.tip}</div>
+                            </div>
+                            <button onClick={nextQuestion} className="bg-white text-black px-6 py-3 rounded font-bold hover:bg-[#2ecc71] transition-colors flex items-center gap-2">
+                                NEXT <Icon name="arrow-right" size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Barra de Progresso */}
+                    <div className="absolute top-0 left-0 h-1 bg-[#2ecc71] transition-all duration-500 z-20" style={{ width: `${progress}%` }}></div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
